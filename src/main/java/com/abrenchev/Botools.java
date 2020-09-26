@@ -1,74 +1,63 @@
 package com.abrenchev;
 
-import com.abrenchev.annotations.MessageHandler;
-import com.abrenchev.domain.TelegramResponse;
 import com.abrenchev.domain.TelegramUpdate;
 import com.abrenchev.exceptions.BotoolsException;
-import com.google.gson.Gson;
-
+import com.abrenchev.updatehandler.DirectMessageHandler;
+import com.abrenchev.updatehandler.TelegramUpdateHandler;
+import com.abrenchev.updatenotifier.LongPollingUpdateNotifier;
+import com.abrenchev.updatenotifier.UpdateNotifier;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.net.URI;
 import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
+import java.util.ArrayList;
+import java.util.List;
 
 public class Botools {
-    private long lastUpdateId = 0;
-
     public void runBot(String authToken, String botName, Class<?> clazz) {
+        Object botInstance = createInstance(clazz);
+        UpdateNotifier updateNotifier = new LongPollingUpdateNotifier(authToken);
+
+        List<TelegramUpdateHandler> handlers = new ArrayList<>();
+        handlers.add(new DirectMessageHandler());
+
         HttpClient httpClient = HttpClient.newBuilder()
                 .version(HttpClient.Version.HTTP_1_1)
                 .build();
 
-        Gson gson = new Gson();
-        Object botInstance = createInstance(clazz);
+        updateNotifier.onUpdate((update) -> {
+            Object botResponse = runHandlers(handlers, update, botInstance);
+            if (botResponse != null) {
+                String responseMessage = URLEncoder.encode(botResponse.toString(), StandardCharsets.UTF_8);
+                HttpRequest sendMessageRequest = HttpRequest.newBuilder()
+                        .uri(URI.create("https://api.telegram.org/bot" + authToken + "/sendMessage?chat_id=" + 389330901 + "&text=" + responseMessage))
+                        .header("Content-Type", "application/json")
+                        .build();
 
-        ScheduledExecutorService executorService = new ScheduledThreadPoolExecutor(1);
+                try {
+                    var sendMessageResponse = httpClient.send(sendMessageRequest, HttpResponse.BodyHandlers.ofString());
+                    System.out.println(sendMessageResponse.body());
+                } catch (IOException | InterruptedException exception) {
+                    throw new BotoolsException("Failed to send message to Telegram", exception);
+                }
+            }
+        });
+    }
 
-        executorService.scheduleAtFixedRate(() -> {
-            HttpRequest getUpdatesRequest = HttpRequest.newBuilder()
-                    .uri(URI.create("https://api.telegram.org/bot" + authToken + "/getUpdates?offset=" + lastUpdateId))
-                    .header("Content-Type", "application/json")
-                    .build();
+    private Object runHandlers(List<TelegramUpdateHandler> handlers, TelegramUpdate update, Object botInstance) {
+        for (TelegramUpdateHandler handler : handlers) {
+            var result = handler.handleUpdate(update, botInstance);
 
-            httpClient.sendAsync(getUpdatesRequest, HttpResponse.BodyHandlers.ofString())
-                    .thenApply(HttpResponse::body)
-                    .thenAccept((responseBody) -> {
-                        TelegramResponse response = gson.fromJson(responseBody, TelegramResponse.class);
+            if (result != null) {
+                return result;
+            }
+        }
 
-                        for (TelegramUpdate update : response.result) {
-                            System.out.println(update.message.text);
-                            Method messageHandler = getMessageHandler(clazz, update.message.text);
-                            if (messageHandler != null) {
-                                String botResponse = URLEncoder.encode(runMessageHandler(messageHandler, botInstance).toString(), StandardCharsets.UTF_8);
-
-                                System.out.println(botResponse);
-
-                                HttpRequest sendMessageRequest = HttpRequest.newBuilder()
-                                        .uri(URI.create("https://api.telegram.org/bot" + authToken + "/sendMessage?chat_id=" + 389330901 + "&text=" + botResponse))
-                                        .header("Content-Type", "application/json")
-                                        .build();
-
-                                try {
-                                    var sendMessageResponse = httpClient.send(sendMessageRequest, HttpResponse.BodyHandlers.ofString());
-                                    System.out.println(sendMessageResponse.body());
-                                } catch (IOException | InterruptedException exception) {
-                                    throw new BotoolsException("Failed to send message to Telegram", exception);
-                                }
-                            }
-
-                            lastUpdateId = update.update_id + 1;
-                        }
-                    });
-
-        }, 0, 1, TimeUnit.MINUTES);
+        return null;
     }
 
     private Object createInstance(Class<?> clazz) {
@@ -77,28 +66,5 @@ public class Botools {
         } catch (NoSuchMethodException | InstantiationException | IllegalAccessException | InvocationTargetException exception) {
             throw new BotoolsException("Failed to create bot instance", exception);
         }
-    }
-
-    private Object runMessageHandler(Method messageHandler, Object botInstance) {
-        try {
-            return messageHandler.invoke(botInstance);
-        } catch (IllegalAccessException | InvocationTargetException exception) {
-            throw new BotoolsException("An exception occurred inside message handler", exception);
-        }
-    }
-
-    private Method getMessageHandler(Class<?> clazz, String messageText) {
-        Method[] methods = clazz.getDeclaredMethods();
-
-        for (Method botMethod : methods) {
-            if (botMethod.isAnnotationPresent(MessageHandler.class)) {
-                String handlerMessage = botMethod.getAnnotation(MessageHandler.class).messageType();
-                if (messageText.equals(handlerMessage)) {
-                    return botMethod;
-                }
-            }
-        }
-
-        return null;
     }
 }
