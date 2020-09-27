@@ -1,5 +1,6 @@
 package com.abrenchev;
 
+import com.abrenchev.command.SendMessageCommand;
 import com.abrenchev.domain.TelegramUpdate;
 import com.abrenchev.exceptions.BotoolsException;
 import com.abrenchev.updatehandler.CommandHandler;
@@ -8,14 +9,7 @@ import com.abrenchev.updatehandler.HelpCommandHandler;
 import com.abrenchev.updatehandler.TelegramUpdateHandler;
 import com.abrenchev.updatenotifier.LongPollingUpdateNotifier;
 import com.abrenchev.updatenotifier.UpdateNotifier;
-import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
-import java.net.URI;
-import java.net.URLEncoder;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -29,25 +23,12 @@ public class Botools {
         handlers.add(new CommandHandler());
         handlers.add(new DirectMessageHandler());
 
-        HttpClient httpClient = HttpClient.newBuilder()
-                .version(HttpClient.Version.HTTP_1_1)
-                .build();
-
         updateNotifier.onUpdate((update) -> {
             Object botResponse = runHandlers(handlers, update, botInstance);
-            if (botResponse != null) {
-                String responseMessage = URLEncoder.encode(botResponse.toString(), StandardCharsets.UTF_8);
-                HttpRequest sendMessageRequest = HttpRequest.newBuilder()
-                        .uri(URI.create("https://api.telegram.org/bot" + authToken + "/sendMessage?chat_id=" + 389330901 + "&text=" + responseMessage))
-                        .header("Content-Type", "application/json")
-                        .build();
 
-                try {
-                    var sendMessageResponse = httpClient.send(sendMessageRequest, HttpResponse.BodyHandlers.ofString());
-                    System.out.println(sendMessageResponse.body());
-                } catch (IOException | InterruptedException exception) {
-                    throw new BotoolsException("Failed to send message to Telegram", exception);
-                }
+            if (botResponse != null) {
+                var command = new SendMessageCommand();
+                command.execute(authToken, botResponse);
             }
         });
     }
