@@ -23,10 +23,7 @@ public class CommandHandler implements TelegramUpdateHandler {
         return null;
     }
 
-    private Method getMessageHandler(Object botInstance, TelegramMessage message) {
-        Class<?> clazz = botInstance.getClass();
-        Method[] methods = clazz.getDeclaredMethods();
-
+    protected String extractCommand(TelegramMessage message) {
         if (message.entities == null) {
             return null;
         }
@@ -42,8 +39,18 @@ public class CommandHandler implements TelegramUpdateHandler {
         TelegramMessageEntity commandEntity = enteredCommandEntity.get();
         int offset = commandEntity.offset;
         int length = commandEntity.length;
-        String enteredCommand = message.text.substring(offset, length);
-        System.out.println(enteredCommand);
+
+        return message.text.substring(offset, length);
+    }
+
+    private Method getMessageHandler(Object botInstance, TelegramMessage message) {
+        Class<?> clazz = botInstance.getClass();
+        Method[] methods = clazz.getDeclaredMethods();
+
+        String enteredCommand = extractCommand(message);
+        if (enteredCommand == null) {
+            return null;
+        }
 
         for (Method botMethod : methods) {
             if (botMethod.isAnnotationPresent(HandleCommand.class)) {
