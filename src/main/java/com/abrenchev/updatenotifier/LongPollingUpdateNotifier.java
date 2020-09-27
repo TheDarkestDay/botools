@@ -37,6 +37,7 @@ public class LongPollingUpdateNotifier extends UpdateNotifier {
 
                         for (TelegramUpdate update : response.result) {
                             notifyListeners(update);
+                            lastUpdateId = update.update_id + 1;
                         }
                     });
 

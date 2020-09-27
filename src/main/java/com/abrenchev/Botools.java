@@ -2,6 +2,7 @@ package com.abrenchev;
 
 import com.abrenchev.domain.TelegramUpdate;
 import com.abrenchev.exceptions.BotoolsException;
+import com.abrenchev.updatehandler.CommandHandler;
 import com.abrenchev.updatehandler.DirectMessageHandler;
 import com.abrenchev.updatehandler.TelegramUpdateHandler;
 import com.abrenchev.updatenotifier.LongPollingUpdateNotifier;
@@ -23,6 +24,7 @@ public class Botools {
         UpdateNotifier updateNotifier = new LongPollingUpdateNotifier(authToken);
 
         List<TelegramUpdateHandler> handlers = new ArrayList<>();
+        handlers.add(new CommandHandler());
         handlers.add(new DirectMessageHandler());
 
         HttpClient httpClient = HttpClient.newBuilder()
