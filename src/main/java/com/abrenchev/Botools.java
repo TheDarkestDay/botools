@@ -1,8 +1,8 @@
 package com.abrenchev;
 
-import com.abrenchev.command.SendMessageCommand;
 import com.abrenchev.domain.TelegramUpdate;
 import com.abrenchev.exceptions.BotoolsException;
+import com.abrenchev.service.TelegramApiService;
 import com.abrenchev.updatehandler.CommandHandler;
 import com.abrenchev.updatehandler.DirectMessageHandler;
 import com.abrenchev.updatehandler.HelpCommandHandler;
@@ -17,6 +17,7 @@ public class Botools {
     public void runBot(String authToken, String botName, Class<?> clazz) {
         Object botInstance = createInstance(clazz);
         UpdateNotifier updateNotifier = new LongPollingUpdateNotifier(authToken);
+        TelegramApiService telegramApi = new TelegramApiService(authToken);
 
         List<TelegramUpdateHandler> handlers = new ArrayList<>();
         handlers.add(new HelpCommandHandler(botInstance));
@@ -27,8 +28,7 @@ public class Botools {
             Object botResponse = runHandlers(handlers, update, botInstance);
 
             if (botResponse != null) {
-                var command = new SendMessageCommand();
-                command.execute(authToken, botResponse);
+                telegramApi.sendObject(update.message.chat.id, botResponse);
             }
         });
     }

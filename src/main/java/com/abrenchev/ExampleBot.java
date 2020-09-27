@@ -2,6 +2,8 @@ package com.abrenchev;
 
 import com.abrenchev.annotations.HandleCommand;
 import com.abrenchev.annotations.MessageHandler;
+import com.abrenchev.domain.Poll;
+import com.abrenchev.domain.PollBuilder;
 
 public class ExampleBot {
     private int counter = 0;
@@ -19,5 +21,18 @@ public class ExampleBot {
         int newValue = counter++;
 
         return String.valueOf(newValue);
+    }
+
+
+    @HandleCommand(
+            command = "/poll",
+            description = "Shows demo poll"
+    )
+    public Poll runDemoPoll() {
+        return new PollBuilder()
+                .setQuestion("Do you want to visit a cinema tonight?")
+                .addOption("Yes")
+                .addOption("No")
+                .build();
     }
 }
