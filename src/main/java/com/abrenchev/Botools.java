@@ -9,6 +9,7 @@ import com.abrenchev.updatenotifier.UpdateNotifier;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 public class Botools {
     public void runBot(String authToken, String botName, Class<?> clazz) {
@@ -27,7 +28,13 @@ public class Botools {
 
             if (botResponse != null) {
                 long chatIdToRespond = update.message != null ? update.message.chat.id : update.channel_post.chat.id;
-                telegramApi.sendObject(chatIdToRespond, botResponse);
+                var botResponseFuture = CompletableFuture.completedFuture(botResponse);
+
+                if (CompletableFuture.class.isInstance(botResponse)) {
+                    botResponseFuture = (CompletableFuture) botResponse;
+                }
+
+                botResponseFuture.thenAccept((resolvedResponse) -> telegramApi.sendObject(chatIdToRespond, resolvedResponse));
             }
         });
     }

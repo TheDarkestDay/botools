@@ -7,6 +7,8 @@ import com.abrenchev.domain.Poll;
 import com.abrenchev.domain.PollBuilder;
 import com.abrenchev.updatehandler.MessageContext;
 
+import java.util.concurrent.CompletableFuture;
+
 public class ExampleBot {
     private int counter = 0;
 
@@ -39,10 +41,10 @@ public class ExampleBot {
     }
 
     @HandleChannelPost()
-    public String praiseJava(MessageContext context) {
+    public CompletableFuture<String> praiseJava(MessageContext context) {
         String messageText = context.getMessageText();
         if (messageText.contains("Java")) {
-            return "Java is awesome!";
+            return CompletableFuture.completedFuture("Java is awesome");
         }
 
         return null;
