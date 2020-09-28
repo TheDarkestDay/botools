@@ -5,26 +5,24 @@ import com.abrenchev.domain.TelegramMessage;
 import com.abrenchev.domain.TelegramMessageEntity;
 import com.abrenchev.domain.TelegramMessageEntityType;
 import com.abrenchev.domain.TelegramUpdate;
-import com.abrenchev.exceptions.BotoolsException;
 
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Optional;
 
-public class CommandHandler implements TelegramUpdateHandler {
+public class CommandHandler extends TelegramUpdateHandler {
     @Override
     public Object handleUpdate(TelegramUpdate update, Object botInstance) {
         Method handler = getMessageHandler(botInstance, update.message);
 
         if (handler != null) {
-            return runMessageHandler(handler, botInstance);
+            return runMessageHandler(handler, botInstance, update);
         }
 
         return null;
     }
 
     protected String extractCommand(TelegramMessage message) {
-        if (message.entities == null) {
+        if (message == null || message.entities == null) {
             return null;
         }
 
@@ -63,13 +61,5 @@ public class CommandHandler implements TelegramUpdateHandler {
         }
 
         return null;
-    }
-
-    private Object runMessageHandler(Method messageHandler, Object botInstance) {
-        try {
-            return messageHandler.invoke(botInstance);
-        } catch (IllegalAccessException | InvocationTargetException exception) {
-            throw new BotoolsException("An exception occurred inside message handler", exception);
-        }
     }
 }
