@@ -3,10 +3,7 @@ package com.abrenchev;
 import com.abrenchev.domain.TelegramUpdate;
 import com.abrenchev.exceptions.BotoolsException;
 import com.abrenchev.service.TelegramApiService;
-import com.abrenchev.updatehandler.CommandHandler;
-import com.abrenchev.updatehandler.DirectMessageHandler;
-import com.abrenchev.updatehandler.HelpCommandHandler;
-import com.abrenchev.updatehandler.TelegramUpdateHandler;
+import com.abrenchev.updatehandler.*;
 import com.abrenchev.updatenotifier.LongPollingUpdateNotifier;
 import com.abrenchev.updatenotifier.UpdateNotifier;
 import java.lang.reflect.InvocationTargetException;
@@ -21,14 +18,16 @@ public class Botools {
 
         List<TelegramUpdateHandler> handlers = new ArrayList<>();
         handlers.add(new HelpCommandHandler(botInstance));
+        handlers.add(new ChannelPostHandler());
         handlers.add(new CommandHandler());
-        handlers.add(new DirectMessageHandler());
+        handlers.add(new MessageHandler());
 
         updateNotifier.onUpdate((update) -> {
             Object botResponse = runHandlers(handlers, update, botInstance);
 
             if (botResponse != null) {
-                telegramApi.sendObject(update.message.chat.id, botResponse);
+                long chatIdToRespond = update.message != null ? update.message.chat.id : update.channel_post.chat.id;
+                telegramApi.sendObject(chatIdToRespond, botResponse);
             }
         });
     }

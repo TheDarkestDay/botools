@@ -18,7 +18,7 @@ public class TelegramApiService {
         this.authToken = authToken;
     }
 
-    public CompletableFuture<?> sendObject(int chatId, Object data) {
+    public CompletableFuture<?> sendObject(long chatId, Object data) {
         if (data instanceof Poll) {
             return sendPoll(chatId, data);
         }
@@ -26,7 +26,7 @@ public class TelegramApiService {
         return this.sendMessage(chatId, data);
     }
 
-    private CompletableFuture<?> sendPoll(int chatId, Object data) {
+    private CompletableFuture<?> sendPoll(long chatId, Object data) {
         HttpClient httpClient = HttpClient.newBuilder()
                 .version(HttpClient.Version.HTTP_1_1)
                 .build();
@@ -44,7 +44,7 @@ public class TelegramApiService {
         return httpClient.sendAsync(sendMessageRequest, HttpResponse.BodyHandlers.ofString());
     }
 
-    private CompletableFuture<?> sendMessage(int chatId, Object data) {
+    private CompletableFuture<?> sendMessage(long chatId, Object data) {
         HttpClient httpClient = HttpClient.newBuilder()
                 .version(HttpClient.Version.HTTP_1_1)
                 .build();

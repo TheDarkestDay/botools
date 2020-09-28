@@ -10,8 +10,11 @@ public abstract class TelegramUpdateHandler {
      public abstract Object handleUpdate(TelegramUpdate update, Object botInstance);
 
      protected Object runMessageHandler(Method messageHandler, Object botInstance, TelegramUpdate update) {
-          var chatId = update.message != null ? update.message.chat.id : null;
-          var messageContext = new MessageContext(chatId);
+          var sourceMessage = update.message != null ? update.message : update.channel_post;
+
+          var chatId = sourceMessage != null ? sourceMessage.chat.id : null;
+          var messageText = sourceMessage != null ? sourceMessage.text : null;
+          var messageContext = new MessageContext(chatId, messageText);
 
           try {
                return messageHandler.invoke(botInstance, messageContext);

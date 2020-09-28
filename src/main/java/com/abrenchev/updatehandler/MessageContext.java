@@ -1,13 +1,20 @@
 package com.abrenchev.updatehandler;
 
 public class MessageContext {
-    private final int chatId;
+    private final long chatId;
 
-    public MessageContext(int chatId) {
+    private final String messageText;
+
+    public MessageContext(long chatId, String messageText) {
         this.chatId = chatId;
+        this.messageText = messageText;
     }
 
-    public int getChatId() {
+    public long getChatId() {
         return chatId;
+    }
+
+    public String getMessageText() {
+        return messageText;
     }
 }
